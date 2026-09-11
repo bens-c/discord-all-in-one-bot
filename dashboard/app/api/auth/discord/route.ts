@@ -1,4 +1,5 @@
 import { createStateCookie } from "@/lib/discord-auth";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET() {
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("scope", "identify guilds");
   authorizeUrl.searchParams.set("state", state);
-  const response = Response.redirect(authorizeUrl);
+  const response = NextResponse.redirect(authorizeUrl);
   response.headers.append("Set-Cookie", await createStateCookie(state));
   return response;
 }
