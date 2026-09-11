@@ -88,7 +88,13 @@ export async function GET(request: Request) {
       discordFetch(`/guilds/${guildId}/audit-logs?limit=8`, token),
       discordFetch("/users/@me", token),
       discordFetch(`/guilds/${guildId}/members?limit=1000`, token),
-      getBotState(guildId).catch(() => null),
+      getBotState(guildId).catch((error: unknown) => {
+        console.error(
+          "MongoDB dashboard connection failed:",
+          error instanceof Error ? error.message : "Unknown MongoDB error",
+        );
+        return null;
+      }),
     ]);
 
     if (!guildResponse.ok) {
