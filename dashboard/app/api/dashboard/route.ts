@@ -102,6 +102,11 @@ export async function GET(request: Request) {
     const audit = auditResponse.ok ? await auditResponse.json() as { audit_log_entries: AuditEntry[]; users: AuditUser[] } : { audit_log_entries: [], users: [] };
     const bot = botResponse.ok ? await botResponse.json() as { username: string; global_name?: string | null } : null;
     const members = membersResponse.ok ? await membersResponse.json() as DiscordMember[] : [];
+    const fallbackMembers = audit.users.map((user) => ({
+      user: { id: user.id, username: user.username, global_name: user.global_name, avatar: null, bot: false },
+      nick: null,
+    }));
+    const visibleMembers = members.length ? members : fallbackMembers;
     const users = new Map(audit.users.map((user) => [user.id, user.global_name || user.username]));
 
     return Response.json({
@@ -133,7 +138,7 @@ export async function GET(request: Request) {
         .filter((role) => role.name !== "@everyone")
         .sort((a, b) => b.position - a.position)
         .map((role) => ({ id: role.id, name: role.name, color: role.color, managed: role.managed })),
-      members: members.filter((member) => !member.user.bot).map((member) => ({
+      members: visibleMembers.filter((member) => !member.user.bot).map((member) => ({
         id: member.user.id,
         name: member.nick || member.user.global_name || member.user.username,
         username: member.user.username,
@@ -152,7 +157,7 @@ export async function GET(request: Request) {
         actor: entry.user_id ? users.get(entry.user_id) ?? "Unknown moderator" : "Discord system",
         reason: entry.reason,
       })),
-      permissions: { auditLog: auditResponse.ok },
+      permissions: { auditLog: auditResponse.ok, memberDirectory: membersResponse.ok, memberDirectoryStatus: membersResponse.status },
     }, { headers: { "Cache-Control": "private, no-store, max-age=0", "CDN-Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "Could not reach the Discord API." }, { status: 502 });
