@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/discord-auth";
+import { getBotState } from "@/lib/bot-store";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -30,6 +31,11 @@ type DiscordRole = {
   color: number;
   position: number;
   managed: boolean;
+};
+
+type DiscordMember = {
+  user: { id: string; username: string; global_name?: string | null; avatar: string | null; bot?: boolean };
+  nick?: string | null;
 };
 
 type AuditEntry = {
@@ -75,12 +81,14 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [guildResponse, channelsResponse, rolesResponse, auditResponse, botResponse] = await Promise.all([
+    const [guildResponse, channelsResponse, rolesResponse, auditResponse, botResponse, membersResponse, botState] = await Promise.all([
       discordFetch(`/guilds/${guildId}?with_counts=true`, token),
       discordFetch(`/guilds/${guildId}/channels`, token),
       discordFetch(`/guilds/${guildId}/roles`, token),
       discordFetch(`/guilds/${guildId}/audit-logs?limit=8`, token),
       discordFetch("/users/@me", token),
+      discordFetch(`/guilds/${guildId}/members?limit=1000`, token),
+      getBotState(guildId).catch(() => null),
     ]);
 
     if (!guildResponse.ok) {
@@ -93,6 +101,7 @@ export async function GET(request: Request) {
     const roles = rolesResponse.ok ? (await rolesResponse.json()) as DiscordRole[] : [];
     const audit = auditResponse.ok ? await auditResponse.json() as { audit_log_entries: AuditEntry[]; users: AuditUser[] } : { audit_log_entries: [], users: [] };
     const bot = botResponse.ok ? await botResponse.json() as { username: string; global_name?: string | null } : null;
+    const members = membersResponse.ok ? await membersResponse.json() as DiscordMember[] : [];
     const users = new Map(audit.users.map((user) => [user.id, user.global_name || user.username]));
 
     return Response.json({
@@ -117,15 +126,26 @@ export async function GET(request: Request) {
         roles: Math.max(0, roles.length - 1),
       },
       channels: channels
-        .filter((channel) => channel.name && [0, 2, 5, 13, 15].includes(channel.type))
+        .filter((channel) => channel.name && [0, 2, 4, 5, 13, 15].includes(channel.type))
         .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-        .slice(0, 12)
         .map((channel) => ({ id: channel.id, name: channel.name, type: channel.type })),
       roles: roles
         .filter((role) => role.name !== "@everyone")
         .sort((a, b) => b.position - a.position)
-        .slice(0, 10)
         .map((role) => ({ id: role.id, name: role.name, color: role.color, managed: role.managed })),
+      members: members.filter((member) => !member.user.bot).map((member) => ({
+        id: member.user.id,
+        name: member.nick || member.user.global_name || member.user.username,
+        username: member.user.username,
+      })).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 1000),
+      botState: botState ? {
+        available: true,
+        config: botState.config,
+        economy: Object.entries(botState.economy).map(([id, account]) => ({ id, total: account.wallet + account.bank })).sort((a, b) => b.total - a.total).slice(0, 10),
+        levels: Object.entries(botState.levels).map(([id, profile]) => ({ id, xp: profile.xp, messages: profile.messages })).sort((a, b) => b.xp - a.xp).slice(0, 10),
+        warnings: Object.values(botState.warnings).reduce((sum, entries) => sum + entries.length, 0),
+        activeGiveaways: Object.values(botState.giveaways).filter((item) => !(item as { ended?: boolean }).ended).length,
+      } : { available: false },
       activity: audit.audit_log_entries.map((entry) => ({
         id: entry.id,
         action: actionNames[entry.action_type] ?? `Server action ${entry.action_type}`,
