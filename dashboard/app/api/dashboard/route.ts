@@ -1,5 +1,8 @@
 const DISCORD_API = "https://discord.com/api/v10";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type DiscordGuild = {
   id: string;
   name: string;
@@ -125,7 +128,7 @@ export async function GET() {
         reason: entry.reason,
       })),
       permissions: { auditLog: auditResponse.ok },
-    }, { headers: { "Cache-Control": "private, no-store" } });
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0", "CDN-Cache-Control": "no-store" } });
   } catch {
     return Response.json({ error: "Could not reach the Discord API." }, { status: 502 });
   }

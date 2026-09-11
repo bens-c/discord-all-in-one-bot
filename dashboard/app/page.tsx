@@ -81,6 +81,13 @@ export default function Home() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const refresh = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 30_000);
+    return () => window.clearInterval(refresh);
+  }, [load]);
+
   const guildName = data?.guild.name ?? "Discord Command Center";
 
   return (
@@ -98,7 +105,7 @@ export default function Home() {
       <section className="min-h-screen lg:pl-[270px]">
         <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-border/70 bg-background/85 px-5 backdrop-blur-xl sm:px-8">
           <div className="flex items-center gap-3"><Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu /></Button><div><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Live server</p><h1 className="text-xl font-semibold tracking-tight">Overview</h1></div></div>
-          <Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={loading ? "animate-spin" : ""} />Refresh</Button>
+          <div className="flex items-center gap-3"><span className="hidden text-xs text-muted-foreground sm:inline">Auto-refresh · 30s</span><Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={loading ? "animate-spin" : ""} />Refresh</Button></div>
         </header>
 
         <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-8 sm:py-9">

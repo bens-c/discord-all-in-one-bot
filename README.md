@@ -75,7 +75,7 @@ npm ci
 npm run dev
 ```
 
-Copy `dashboard/.env.example` to `dashboard/.env.local` and add the bot token and server ID. The dashboard fetches current server, channel, role, presence, boost, and audit-log data through its server-only API route. The token is never returned to the browser. Audit-log activity requires the bot to have the **View Audit Log** permission.
+Copy `dashboard/.env.example` to `dashboard/.env.local` and add the bot token and server ID. The dynamic dashboard fetches current server, channel, role, presence, boost, and audit-log data through its server-only API route. Responses are not cached, and the visible dashboard refreshes automatically every 30 seconds. The token is never returned to the browser. Audit-log activity requires the bot to have the **View Audit Log** permission.
 
 ## PM2 setup
 
