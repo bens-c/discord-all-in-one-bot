@@ -75,7 +75,11 @@ npm ci
 npm run dev
 ```
 
-Copy `dashboard/.env.example` to `dashboard/.env.local` and add the bot token and server ID. The dynamic dashboard fetches current server, channel, role, presence, boost, and audit-log data through its server-only API route. Responses are not cached, and the visible dashboard refreshes automatically every 30 seconds. The token is never returned to the browser. Audit-log activity requires the bot to have the **View Audit Log** permission.
+Copy `dashboard/.env.example` to `dashboard/.env.local` and add the bot token, server ID, and a strong dashboard access key. The dynamic dashboard fetches current server, channel, role, presence, boost, and audit-log data through its server-only API route. Responses are not cached, and the visible dashboard refreshes automatically every 30 seconds. The bot token is never returned to the browser. Audit-log activity requires the bot to have the **View Audit Log** permission.
+
+### Render deployment
+
+The repository includes a Render Blueprint. Create a new Blueprint from `render.yaml` on the `web-dashboard` branch and supply `DISCORD_TOKEN`, `GUILD_ID`, and `DASHBOARD_ACCESS_KEY` as Render environment variables. Render uses `dashboard` as the root directory, builds with `npm ci && npm run build`, starts with `npm start`, and checks `/api/health`.
 
 ## PM2 setup
 

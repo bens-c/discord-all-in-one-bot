@@ -1,8 +1,9 @@
 "use client";
 
-import { Activity, Bot, CircleAlert, Clock3, Hash, LayoutDashboard, Menu, Radio, RefreshCw, ShieldCheck, Sparkles, Tags, Users, Volume2, X } from "lucide-react";
+import { Activity, Bot, CircleAlert, Clock3, Hash, KeyRound, LayoutDashboard, Menu, Radio, RefreshCw, ShieldCheck, Sparkles, Tags, Users, Volume2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type DashboardData = {
@@ -45,30 +46,37 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [accessKey, setAccessKey] = useState("");
+  const [needsAccess, setNeedsAccess] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (key = accessKey) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/dashboard", { cache: "no-store" });
-      const payload = await response.json() as DashboardData | { error?: string };
+      const response = await fetch("/api/dashboard", { cache: "no-store", headers: key ? { Authorization: `Bearer ${key}` } : undefined });
+      const payload = await response.json() as DashboardData | { error?: string; code?: string };
+      if (response.status === 401) { setNeedsAccess(true); return; }
       if (!response.ok) throw new Error("error" in payload ? payload.error : "Discord data could not be loaded.");
       setData(payload as DashboardData);
+      setNeedsAccess(false);
     } catch (reason) {
       setData(null);
       setError(reason instanceof Error ? reason.message : "Discord data could not be loaded.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [accessKey]);
 
   useEffect(() => {
     const controller = new AbortController();
     async function initialLoad() {
       try {
-        const response = await fetch("/api/dashboard", { cache: "no-store", signal: controller.signal });
-        const payload = await response.json() as DashboardData | { error?: string };
+        const savedKey = window.sessionStorage.getItem("dashboard-access-key") ?? "";
+        const response = await fetch("/api/dashboard", { cache: "no-store", signal: controller.signal, headers: savedKey ? { Authorization: `Bearer ${savedKey}` } : undefined });
+        const payload = await response.json() as DashboardData | { error?: string; code?: string };
+        if (response.status === 401) { setNeedsAccess(true); return; }
         if (!response.ok) throw new Error("error" in payload ? payload.error : "Discord data could not be loaded.");
+        setAccessKey(savedKey);
         setData(payload as DashboardData);
       } catch (reason) {
         if (controller.signal.aborted) return;
@@ -83,10 +91,17 @@ export default function Home() {
 
   useEffect(() => {
     const refresh = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
+      if (!needsAccess && document.visibilityState === "visible") void load();
     }, 30_000);
     return () => window.clearInterval(refresh);
-  }, [load]);
+  }, [load, needsAccess]);
+
+  const unlock = async (key: string) => {
+    window.sessionStorage.setItem("dashboard-access-key", key);
+    setAccessKey(key);
+    setNeedsAccess(false);
+    await load(key);
+  };
 
   const guildName = data?.guild.name ?? "Discord Command Center";
 
@@ -109,11 +124,16 @@ export default function Home() {
         </header>
 
         <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-8 sm:py-9">
-          {loading && !data ? <LoadingDashboard /> : error ? <SetupState message={error} onRetry={load} /> : data ? <LiveDashboard data={data} /> : null}
+          {needsAccess ? <AccessState onUnlock={unlock} /> : loading && !data ? <LoadingDashboard /> : error ? <SetupState message={error} onRetry={() => load()} /> : data ? <LiveDashboard data={data} /> : null}
         </div>
       </section>
     </main>
   );
+}
+
+function AccessState({ onUnlock }: { onUnlock: (key: string) => Promise<void> }) {
+  const [key, setKey] = useState("");
+  return <section className="mx-auto mt-10 max-w-md rounded-2xl border border-violet-300/20 bg-violet-300/[0.05] p-6 sm:p-8"><div className="grid size-12 place-items-center rounded-xl bg-violet-300/10 text-violet-300"><KeyRound /></div><h2 className="mt-5 text-2xl font-semibold">Dashboard access</h2><p className="mt-2 leading-7 text-muted-foreground">Enter the access key configured for this dashboard.</p><form className="mt-6 space-y-4" onSubmit={(event) => { event.preventDefault(); if (key) void onUnlock(key); }}><Input type="password" value={key} onChange={(event) => setKey(event.target.value)} placeholder="Access key" autoComplete="current-password" aria-label="Dashboard access key" className="h-11" /><Button type="submit" className="w-full" disabled={!key}><KeyRound />Open dashboard</Button></form><p className="mt-4 text-xs leading-5 text-muted-foreground">The key is kept only for this browser session.</p></section>;
 }
 
 function LoadingDashboard() {
