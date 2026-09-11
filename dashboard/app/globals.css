@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../vendor/shadcn-tailwind-4.13.0.css";
+
+:root {
+  --background: #090b12; --foreground: #f4f3ff; --card: #11141e; --card-foreground: #f4f3ff;
+  --popover: #151824; --popover-foreground: #f4f3ff; --primary: #7c5cff; --primary-foreground: #ffffff;
+  --secondary: #1b1e2a; --secondary-foreground: #f4f3ff; --muted: #181b25; --muted-foreground: #9197aa;
+  --accent: #202435; --accent-foreground: #ffffff; --destructive: #ff5d72; --border: #242837;
+  --input: #242837; --ring: #8d75ff; --radius: 0.85rem; --sidebar: #0d0f17; --sidebar-foreground: #f4f3ff;
+  --sidebar-primary: #7c5cff; --sidebar-primary-foreground: #ffffff; --sidebar-accent: #191c28;
+  --sidebar-accent-foreground: #ffffff; --sidebar-border: #222532; --sidebar-ring: #8d75ff;
+}
+@theme inline {
+  --color-background: var(--background); --color-foreground: var(--foreground); --color-card: var(--card); --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover); --color-popover-foreground: var(--popover-foreground); --color-primary: var(--primary); --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary); --color-secondary-foreground: var(--secondary-foreground); --color-muted: var(--muted); --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent); --color-accent-foreground: var(--accent-foreground); --color-destructive: var(--destructive); --color-border: var(--border); --color-input: var(--input); --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar); --color-sidebar-foreground: var(--sidebar-foreground); --color-sidebar-primary: var(--sidebar-primary); --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent); --color-sidebar-accent-foreground: var(--sidebar-accent-foreground); --color-sidebar-border: var(--sidebar-border); --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px); --radius-md: calc(var(--radius) - 2px); --radius-lg: var(--radius); --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { border-color: var(--border); }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); }
+button { cursor: pointer; }
+.dashboard-card { border: 1px solid rgb(255 255 255 / 0.08); border-radius: 1rem; background: linear-gradient(145deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.018)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03); }
