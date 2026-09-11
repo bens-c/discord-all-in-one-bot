@@ -75,11 +75,11 @@ npm ci
 npm run dev
 ```
 
-Copy `dashboard/.env.example` to `dashboard/.env.local` and add the bot token, server ID, and a strong dashboard access key. The dynamic dashboard fetches current server, channel, role, presence, boost, and audit-log data through its server-only API route. Responses are not cached, and the visible dashboard refreshes automatically every 30 seconds. The bot token is never returned to the browser. Audit-log activity requires the bot to have the **View Audit Log** permission.
+Copy `dashboard/.env.example` to `dashboard/.env.local` and add the bot and Discord OAuth settings. The dynamic dashboard fetches current server, channel, role, presence, boost, and audit-log data through its server-only API route. Responses are not cached, and the visible dashboard refreshes automatically every 30 seconds. Bot and OAuth secrets are never returned to the browser. Only Discord members of the configured server with Administrator or Manage Server permission can sign in. Audit-log activity requires the bot to have the **View Audit Log** permission.
 
 ### Render deployment
 
-The repository includes a Render Blueprint. Create a new Blueprint from `render.yaml` on the `web-dashboard` branch and supply `DISCORD_TOKEN`, `GUILD_ID`, and `DASHBOARD_ACCESS_KEY` as Render environment variables. Render uses `dashboard` as the root directory, builds with `npm ci && npm run build`, starts with `npm start`, and checks `/api/health`.
+The repository includes a Render Blueprint. Create a new Blueprint from `render.yaml` on the `web-dashboard` branch and supply `DISCORD_TOKEN`, `GUILD_ID`, `CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `SESSION_SECRET` as Render environment variables. Add `https://discord-all-in-one-dashboard.onrender.com/api/auth/callback/discord` as an OAuth2 redirect in the Discord Developer Portal. Render uses `dashboard` as the root directory, builds with `npm ci && npm run build`, starts with `npm start`, and checks `/api/health`.
 
 ## PM2 setup
 

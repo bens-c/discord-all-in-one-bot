@@ -16,5 +16,11 @@ services:
         sync: false
       - key: GUILD_ID
         sync: false
-      - key: DASHBOARD_ACCESS_KEY
+      - key: CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_REDIRECT_URI
+        value: https://discord-all-in-one-dashboard.onrender.com/api/auth/callback/discord
+      - key: SESSION_SECRET
         sync: false

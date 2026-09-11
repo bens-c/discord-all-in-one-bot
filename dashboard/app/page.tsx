@@ -1,13 +1,13 @@
 "use client";
 
-import { Activity, Bot, CircleAlert, Clock3, Hash, KeyRound, LayoutDashboard, Menu, Radio, RefreshCw, ShieldCheck, Sparkles, Tags, Users, Volume2, X } from "lucide-react";
+import { Activity, Bot, CircleAlert, Clock3, Hash, LayoutDashboard, LogIn, LogOut, Menu, Radio, RefreshCw, ShieldCheck, Sparkles, Tags, Users, Volume2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type DashboardData = {
   fetchedAt: string;
+  viewer: { id: string; name: string; avatarUrl: string | null; expiresAt: number };
   bot: { name: string } | null;
   guild: {
     id: string;
@@ -46,14 +46,13 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [accessKey, setAccessKey] = useState("");
   const [needsAccess, setNeedsAccess] = useState(false);
 
-  const load = useCallback(async (key = accessKey) => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/dashboard", { cache: "no-store", headers: key ? { Authorization: `Bearer ${key}` } : undefined });
+      const response = await fetch("/api/dashboard", { cache: "no-store" });
       const payload = await response.json() as DashboardData | { error?: string; code?: string };
       if (response.status === 401) { setNeedsAccess(true); return; }
       if (!response.ok) throw new Error("error" in payload ? payload.error : "Discord data could not be loaded.");
@@ -65,18 +64,16 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [accessKey]);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     async function initialLoad() {
       try {
-        const savedKey = window.sessionStorage.getItem("dashboard-access-key") ?? "";
-        const response = await fetch("/api/dashboard", { cache: "no-store", signal: controller.signal, headers: savedKey ? { Authorization: `Bearer ${savedKey}` } : undefined });
+        const response = await fetch("/api/dashboard", { cache: "no-store", signal: controller.signal });
         const payload = await response.json() as DashboardData | { error?: string; code?: string };
         if (response.status === 401) { setNeedsAccess(true); return; }
         if (!response.ok) throw new Error("error" in payload ? payload.error : "Discord data could not be loaded.");
-        setAccessKey(savedKey);
         setData(payload as DashboardData);
       } catch (reason) {
         if (controller.signal.aborted) return;
@@ -96,13 +93,6 @@ export default function Home() {
     return () => window.clearInterval(refresh);
   }, [load, needsAccess]);
 
-  const unlock = async (key: string) => {
-    window.sessionStorage.setItem("dashboard-access-key", key);
-    setAccessKey(key);
-    setNeedsAccess(false);
-    await load(key);
-  };
-
   const guildName = data?.guild.name ?? "Discord Command Center";
 
   return (
@@ -113,27 +103,26 @@ export default function Home() {
           <Button variant="ghost" size="icon-sm" className="lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X /></Button>
         </div>
         <nav className="mt-8 space-y-1" aria-label="Dashboard sections">{nav.map(({ label, href, icon: Icon }, index) => <a key={label} href={href} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${index === 0 ? "bg-primary/15 text-violet-200" : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"}`}><Icon className="size-[18px]" />{label}</a>)}</nav>
-        <div className="mt-auto rounded-xl border border-white/10 bg-white/[0.03] p-4"><div className="flex items-center gap-2 text-sm"><span className={`size-2 rounded-full ${data ? "bg-emerald-400" : "bg-amber-400"}`} />{data ? "Discord connected" : "Configuration needed"}</div><p className="mt-2 text-xs leading-5 text-muted-foreground">{data?.bot ? `Authenticated as ${data.bot.name}` : "Server credentials stay on the server and are never sent to this page."}</p></div>
+        <div className="mt-auto rounded-xl border border-white/10 bg-white/[0.03] p-4"><div className="flex items-center gap-2 text-sm"><span className={`size-2 rounded-full ${data ? "bg-emerald-400" : "bg-amber-400"}`} />{data ? "Discord connected" : "Login required"}</div><p className="mt-2 text-xs leading-5 text-muted-foreground">{data ? `Signed in as ${data.viewer.name}` : "Sign in with Discord to access server administration data."}</p></div>
       </aside>
       {mobileOpen && <button className="fixed inset-0 z-30 bg-black/70 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation overlay" />}
 
       <section className="min-h-screen lg:pl-[270px]">
         <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-border/70 bg-background/85 px-5 backdrop-blur-xl sm:px-8">
           <div className="flex items-center gap-3"><Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu /></Button><div><p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Live server</p><h1 className="text-xl font-semibold tracking-tight">Overview</h1></div></div>
-          <div className="flex items-center gap-3"><span className="hidden text-xs text-muted-foreground sm:inline">Auto-refresh · 30s</span><Button variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={loading ? "animate-spin" : ""} />Refresh</Button></div>
+          <div className="flex items-center gap-3"><span className="hidden text-xs text-muted-foreground sm:inline">Auto-refresh · 30s</span>{data && <Button variant="ghost" size="icon" asChild aria-label="Sign out"><a href="/api/auth/logout"><LogOut /></a></Button>}<Button variant="outline" onClick={() => void load()} disabled={loading || needsAccess}><RefreshCw className={loading ? "animate-spin" : ""} />Refresh</Button></div>
         </header>
 
         <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-8 sm:py-9">
-          {needsAccess ? <AccessState onUnlock={unlock} /> : loading && !data ? <LoadingDashboard /> : error ? <SetupState message={error} onRetry={() => load()} /> : data ? <LiveDashboard data={data} /> : null}
+          {needsAccess ? <AccessState /> : loading && !data ? <LoadingDashboard /> : error ? <SetupState message={error} onRetry={() => load()} /> : data ? <LiveDashboard data={data} /> : null}
         </div>
       </section>
     </main>
   );
 }
 
-function AccessState({ onUnlock }: { onUnlock: (key: string) => Promise<void> }) {
-  const [key, setKey] = useState("");
-  return <section className="mx-auto mt-10 max-w-md rounded-2xl border border-violet-300/20 bg-violet-300/[0.05] p-6 sm:p-8"><div className="grid size-12 place-items-center rounded-xl bg-violet-300/10 text-violet-300"><KeyRound /></div><h2 className="mt-5 text-2xl font-semibold">Dashboard access</h2><p className="mt-2 leading-7 text-muted-foreground">Enter the access key configured for this dashboard.</p><form className="mt-6 space-y-4" onSubmit={(event) => { event.preventDefault(); if (key) void onUnlock(key); }}><Input type="password" value={key} onChange={(event) => setKey(event.target.value)} placeholder="Access key" autoComplete="current-password" aria-label="Dashboard access key" className="h-11" /><Button type="submit" className="w-full" disabled={!key}><KeyRound />Open dashboard</Button></form><p className="mt-4 text-xs leading-5 text-muted-foreground">The key is kept only for this browser session.</p></section>;
+function AccessState() {
+  return <section className="mx-auto mt-10 max-w-md rounded-2xl border border-violet-300/20 bg-violet-300/[0.05] p-6 sm:p-8"><div className="grid size-12 place-items-center rounded-xl bg-violet-300/10 text-violet-300"><Bot /></div><h2 className="mt-5 text-2xl font-semibold">Sign in with Discord</h2><p className="mt-2 leading-7 text-muted-foreground">Use your Discord account to access this server dashboard. Administrator or Manage Server permission is required.</p><Button className="mt-6 w-full bg-[#5865F2] text-white hover:bg-[#4752c4]" asChild><a href="/api/auth/discord"><LogIn />Continue with Discord</a></Button><p className="mt-4 text-xs leading-5 text-muted-foreground">The app requests only your identity and server list. Your Discord password is never shared with this website.</p></section>;
 }
 
 function LoadingDashboard() {
@@ -141,7 +130,7 @@ function LoadingDashboard() {
 }
 
 function SetupState({ message, onRetry }: { message: string; onRetry: () => Promise<void> }) {
-  return <section className="mx-auto mt-10 max-w-2xl rounded-2xl border border-amber-300/20 bg-amber-300/[0.05] p-6 sm:p-8"><div className="grid size-12 place-items-center rounded-xl bg-amber-300/10 text-amber-300"><CircleAlert /></div><h2 className="mt-5 text-2xl font-semibold">Connect your Discord server</h2><p className="mt-2 leading-7 text-muted-foreground">{message}</p><div className="mt-6 rounded-xl border border-white/10 bg-black/20 p-4 font-mono text-sm leading-7"><p>DISCORD_TOKEN=</p><p>GUILD_ID=</p><p>DASHBOARD_ACCESS_KEY=</p></div><p className="mt-4 text-sm leading-6 text-muted-foreground">Configure all three values as environment variables. The bot needs access to the selected server; audit activity additionally requires View Audit Log.</p><Button className="mt-6" onClick={() => void onRetry()}><RefreshCw />Try again</Button></section>;
+  return <section className="mx-auto mt-10 max-w-2xl rounded-2xl border border-amber-300/20 bg-amber-300/[0.05] p-6 sm:p-8"><div className="grid size-12 place-items-center rounded-xl bg-amber-300/10 text-amber-300"><CircleAlert /></div><h2 className="mt-5 text-2xl font-semibold">Connect your Discord application</h2><p className="mt-2 leading-7 text-muted-foreground">{message}</p><p className="mt-4 text-sm leading-6 text-muted-foreground">Configure the Discord OAuth and bot environment variables on Render. The bot needs access to the selected server; audit activity additionally requires View Audit Log.</p><Button className="mt-6" onClick={() => void onRetry()}><RefreshCw />Try again</Button></section>;
 }
 
 function LiveDashboard({ data }: { data: DashboardData }) {

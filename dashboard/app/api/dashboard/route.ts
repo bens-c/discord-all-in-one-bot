@@ -1,3 +1,5 @@
+import { getSession } from "@/lib/discord-auth";
+
 const DISCORD_API = "https://discord.com/api/v10";
 
 export const dynamic = "force-dynamic";
@@ -62,15 +64,8 @@ function discordFetch(path: string, token: string) {
 export async function GET(request: Request) {
   const token = process.env.DISCORD_TOKEN;
   const guildId = process.env.GUILD_ID;
-  const accessKey = process.env.DASHBOARD_ACCESS_KEY;
-
-  if (process.env.NODE_ENV === "production" && !accessKey) {
-    return Response.json({ error: "DASHBOARD_ACCESS_KEY must be configured for production." }, { status: 503 });
-  }
-
-  if (accessKey && request.headers.get("authorization") !== `Bearer ${accessKey}`) {
-    return Response.json({ error: "Dashboard access key required.", code: "UNAUTHORIZED" }, { status: 401 });
-  }
+  const session = await getSession(request);
+  if (!session) return Response.json({ error: "Discord login required.", code: "UNAUTHORIZED" }, { status: 401 });
 
   if (!token || !guildId) {
     return Response.json(
@@ -102,6 +97,7 @@ export async function GET(request: Request) {
 
     return Response.json({
       fetchedAt: new Date().toISOString(),
+      viewer: session,
       bot: bot ? { name: bot.global_name || bot.username } : null,
       guild: {
         id: guild.id,
