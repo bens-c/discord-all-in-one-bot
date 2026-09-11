@@ -18,6 +18,7 @@ const client = new Client({
 client.once(Events.ClientReady, async (readyClient) => {
   console.log(`Ready as ${readyClient.user.tag} on ${readyClient.guilds.cache.size} guild(s).`);
   await restoreGiveaways(readyClient).catch(console.error);
+  setInterval(() => restoreGiveaways(readyClient).catch(console.error), 60_000).unref();
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
