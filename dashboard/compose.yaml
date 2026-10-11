@@ -1,0 +1,39 @@
+name: kyrox-dashboard
+services:
+  dashboard:
+    build:
+      context: .
+    restart: unless-stopped
+    init: true
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN:?Set DISCORD_TOKEN in .env}
+      GUILD_ID: ${GUILD_ID:?Set GUILD_ID in .env}
+      CLIENT_ID: ${CLIENT_ID:?Set CLIENT_ID in .env}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:?Set DISCORD_CLIENT_SECRET in .env}
+      DISCORD_REDIRECT_URI: https://${DASHBOARD_DOMAIN:?Set DASHBOARD_DOMAIN in .env}/api/auth/callback/discord
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in .env}
+    expose:
+      - "3000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:?Set DASHBOARD_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      dashboard:
+        condition: service_healthy
+volumes:
+  caddy_data:
+  caddy_config:
